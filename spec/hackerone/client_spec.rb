@@ -59,6 +59,16 @@ RSpec.describe HackerOne::Client do
       expect { HackerOne::Client::Api.new.reports }.to raise_error(ArgumentError)
     end
 
+    it "raises an error if invalid event is supplied" do
+      HackerOne::Client.program = "github"
+      expect { HackerOne::Client::Api.new.reports(event: "foo") }.to raise_error(ArgumentError)
+    end
+
+    it "raises an error if invalid state is supplied" do
+      HackerOne::Client.program = "github"
+      expect { HackerOne::Client::Api.new.reports(state: "foo") }.to raise_error(ArgumentError)
+    end
+
     it "returns reports for a default program" do
       begin
         HackerOne::Client.program = "github"

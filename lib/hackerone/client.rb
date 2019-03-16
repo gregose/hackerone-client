@@ -63,18 +63,54 @@ module HackerOne
 
       ## Returns all open reports, optionally with a time bound
       #
-      # program: the HackerOne program to search on (configure globally with Hackerone::Client.program=)
-      # since (optional): a time bound, don't include reports earlier than +since+. Must be a DateTime object.
+      # by default, returns all open reports created within the past 3 days
       #
-      # returns all open reports or an empty array
-      def reports(since: 3.days.ago)
+      # program: the HackerOne program to search on (configure globally with Hackerone::Client.program=)
+      # state (optional): only return reports currently in this state. Must be one of `REPORT_STATES` or nil for all states
+      # event (optional): the event to filter the time bound `since` on. Must be one of `REPORT_EVENTS`
+      # since (optional): a time bound, don't include reports that had `event` occur earlier than +since+. Must be a DateTime object.
+      #
+      # returns all matching reports or an empty array
+      REPORT_STATES = %w{
+        new
+        triaged
+        needs-more-info
+        resolved
+        not-applicable
+        informative
+        duplicate
+        spam
+        all
+      }.freeze
+
+      REPORT_EVENTS = %w{
+        created
+        triaged
+        closed
+        disclosed
+        bounty_awarded
+        swag_awarded
+        last_reporter_activity
+        first_program_activity
+        last_program_activity
+        last_activity
+        last_public_activity
+      }.freeze
+
+      def reports(since: 3.days.ago, state: "new", event: "created")
         raise ArgumentError, "Program cannot be nil" unless program
+        raise ArgumentError, "Invalid report state" unless REPORT_STATES.include?(state)
+        raise ArgumentError, "Invalid report event" unless REPORT_EVENTS.include?(event)
+
         response = self.class.hackerone_api_connection.get do |req|
           options = {
-            "filter[state][]" => "new",
             "filter[program][]" => program,
-            "filter[created_at__gt]" => since.iso8601
+            "filter[#{event}_at__gt]" => since.iso8601
           }
+          if state != "all"
+            options["filter[state][]"] = state
+          end
+
           req.url "reports", options
         end
 
